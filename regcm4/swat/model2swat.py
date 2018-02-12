@@ -17,9 +17,28 @@ time mean net SW, i.e. incident minus reflected (rsns)
 
 /opt/miniconda2/bin/ncrcat -v uas regcm4_erai_12km_SRF.*.nc ../singlevar/regcm4_erai_12km_uas.nc
 
+tasmax and tasmin
+-----------------
+/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v tas -y min regcm4_erai_12km_tas.????.nc ../daily6z/regcm4_erai_12km_tasmin.nc
+/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v tas -y max regcm4_erai_12km_tas.????.nc ../daily6z/regcm4_erai_12km_tasmax.nc
+
+precip
+------
+/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v pr -y avg regcm4_erai_12km_pr.????.nc ../daily6z/regcm4_erai_12km_pr.nc
+
+
+wind
+----
+/opt/miniconda2/bin/ncks -A regcm4_erai_12km_uas.1989.nc regcm4_erai_12km_vas.1989.nc
+mv regcm4_erai_12km_vas.1989.nc regcm4_erai_12km_uas_vas.1989.nc
+rm regcm4_erai_12km_uas.1989.nc
+# the -6 appears to allow it to even work
+/opt/miniconda2/bin/ncap2 -6 -O -s 'sped=sqrt(pow(uas,2)+pow(vas,2))' regcm4_erai_12km_uas_vas.1989.nc regcm4_erai_12km_sped.1989.nc
+
 """
 from __future__ import print_function
 import sys
+import datetime
 
 import netCDF4
 import psycopg2
@@ -28,10 +47,20 @@ from affine import Affine
 import geopandas as gpd
 from rasterstats import zonal_stats
 import pandas as pd
+from pyiem.datatypes import distance, temperature
 
 PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
            '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
+BASEDIR = "/mnt/nrel/akrherz/cori/regcm4_erai_12km/daily6z"
 
+
+def get_basedate(ncfile):
+    """Compute the dates that we have"""
+    nctime = ncfile.variables['time']
+    basets = datetime.datetime.strptime(nctime.units,
+                                        "hours since %Y-%m-%d 00:00:00 UTC")
+    ts = basets + datetime.timedelta(hours=float(nctime[0]))
+    return datetime.date(ts.year, ts.month, ts.day), len(nctime[:])
 
 
 def main(argv):
@@ -41,23 +70,65 @@ def main(argv):
     SELECT huc12, ST_Transform(simple_geom, %s) as geo from wbd_huc12
     WHERE swat_use
     """, pgconn, params=(PROJSTR,), index_col='huc12', geom_col='geo')
-    nc = netCDF4.Dataset(("/mnt/nrel/akrherz/cori/regcm4_erai_12km/singlevar/"
-                          "regcm4_erai_12km_uas.1989.nc"))
-    ncaffine = Affine(nc.getncattr('grid_size_in_meters'), 0.,
-                      nc.variables['jx'][0],
+    tasmax_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_tasmax.nc")
+    tasmin_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_tasmin.nc")
+    pr_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_pr.nc")
+
+    # compute the affine
+    ncaffine = Affine(pr_nc.getncattr('grid_size_in_meters'), 0.,
+                      pr_nc.variables['jx'][0],
                       0.,
-                      0 - nc.getncattr('grid_size_in_meters'),
-                      nc.variables['iy'][-1])
-    pcp = np.flipud(nc.variables['uas'][10, 0, :, :])
-    print(np.shape(pcp))
-    # nodata here represents the value that is set to missing within the
-    # source dataset!, setting to zero has strange side affects
-    zs = zonal_stats(huc12df['geo'], pcp, affine=ncaffine, nodata=-1,
-                     all_touched=True)
-    i = 0
-    for huc12, _ in huc12df.itertuples():
-        print(zs[i]['mean'])
-        i += 1
+                      0 - pr_nc.getncattr('grid_size_in_meters'),
+                      pr_nc.variables['iy'][-1])
+
+    basedate, timesz = get_basedate(pr_nc)
+    fps = []
+    for i in range(timesz):
+        date = basedate + datetime.timedelta(days=i)
+        print(date)
+
+        def process(grid):
+            # nodata here represents the value that is set to missing within
+            # the source dataset!, setting to zero has strange side affects
+            return zonal_stats(huc12df['geo'], np.flipud(grid),
+                               affine=ncaffine, nodata=-1, all_touched=True)
+
+        zs_tasmax = process(tasmax_nc.variables['tas'][i, 0, :, :])
+        zs_tasmin = process(tasmin_nc.variables['tas'][i, 0, :, :])
+        zs_pr = process(pr_nc.variables['pr'][i, :, :])
+        j = 0
+        for huc12, _ in huc12df.itertuples():
+            if i == 0:
+                fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'wb'),
+                            open('swatfiles/%s.tmp' % (huc12, ), 'wb')])
+                fps[j][0].write("""HUC12 %s
+
+
+
+""" % (huc12, ))
+                fps[j][1].write("""HUC12 %s
+
+
+
+""" % (huc12, ))
+            fps[j][0].write(("%s%03i%5.1f\n"
+                             ) % (date.year, float(date.strftime("%j")),
+                                  zs_pr[i]['mean'] * 86400.))
+            fps[j][1].write(("%s%03i%5.1f%5.1f\n"
+                             ) % (date.year, float(date.strftime("%j")),
+                                  temperature(zs_tasmax[i]['mean'],
+                                              'K').value("C"),
+                                  temperature(zs_tasmin[i]['mean'],
+                                              'K').value("C")))
+            # print("%s %s %.2f %.2f %.2f" % (date, huc12,
+            #                                zs_tasmax[j]['mean'],
+            #                                zs_tasmin[j]['mean'],
+            #                                zs_pr[j]['mean'] * 86400.))
+            j += 1
+
+    for i in range(len(fps)):
+        fps[i][0].close()
+        fps[i][1].close()
 
 
 if __name__ == '__main__':
