@@ -15,40 +15,48 @@ time mean precipitation rate (pr)
 time mean incident SW (rsds)
 time mean net SW, i.e. incident minus reflected (rsns)
 
-/opt/miniconda2/bin/ncrcat -v uas regcm4_erai_12km_SRF.*.nc ../singlevar/regcm4_erai_12km_uas.nc
+/opt/miniconda2/bin/ncrcat -v uas regcm4_erai_12km_SRF.*.nc
+    ../singlevar/regcm4_erai_12km_uas.nc
 
 tasmax and tasmin
 -----------------
-/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v tas -y min regcm4_erai_12km_tas.????.nc ../daily6z/regcm4_erai_12km_tasmin.nc
-/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v tas -y max regcm4_erai_12km_tas.????.nc ../daily6z/regcm4_erai_12km_tasmax.nc
+/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v tas -y min
+    regcm4_erai_12km_tas.????.nc ../daily6z/regcm4_erai_12km_tasmin.nc
+/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v tas -y max
+    regcm4_erai_12km_tas.????.nc ../daily6z/regcm4_erai_12km_tasmax.nc
 
 precip
 ------
-/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v pr -y avg regcm4_erai_12km_pr.????.nc ../daily6z/regcm4_erai_12km_pr.nc
+/opt/miniconda2/bin/ncra -O --mro -d time,6,,24,24 -v pr -y avg
+    regcm4_erai_12km_pr.????.nc ../daily6z/regcm4_erai_12km_pr.nc
 
 
 wind
 ----
-/opt/miniconda2/bin/ncks -A regcm4_erai_12km_uas.1989.nc regcm4_erai_12km_vas.1989.nc
+/opt/miniconda2/bin/ncks -A regcm4_erai_12km_uas.1989.nc
+    regcm4_erai_12km_vas.1989.nc
 mv regcm4_erai_12km_vas.1989.nc regcm4_erai_12km_uas_vas.1989.nc
 rm regcm4_erai_12km_uas.1989.nc
 # the -6 appears to allow it to even work
-/opt/miniconda2/bin/ncap2 -6 -O -s 'sped=sqrt(pow(uas,2)+pow(vas,2))' regcm4_erai_12km_uas_vas.1989.nc regcm4_erai_12km_sped.1989.nc
+/opt/miniconda2/bin/ncap2 -6 -O -s 'sped=sqrt(pow(uas,2)+pow(vas,2))'
+    regcm4_erai_12km_uas_vas.1989.nc regcm4_erai_12km_sped.1989.nc
 
 """
 from __future__ import print_function
 import sys
 import datetime
+from collections import namedtuple
 
+from tqdm import tqdm
 import netCDF4
-import psycopg2
 import numpy as np
 from affine import Affine
 import geopandas as gpd
 from rasterstats import zonal_stats
-import pandas as pd
-from pyiem.datatypes import distance, temperature
+from pyiem.util import get_dbconn
+from pyiem.datatypes import temperature
 
+GRIDINFO = namedtuple("GridInfo", ['x0', 'y0', 'xsz', 'ysz', 'mask'])
 PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
            '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
 BASEDIR = "/mnt/nrel/akrherz/cori/regcm4_erai_12km/daily6z"
@@ -65,17 +73,19 @@ def get_basedate(ncfile):
 
 def main(argv):
     """Go Main Go"""
-    pgconn = psycopg2.connect('dbname=idep')
+    pgconn = get_dbconn('idep')
     huc12df = gpd.GeoDataFrame.from_postgis("""
     SELECT huc12, ST_Transform(simple_geom, %s) as geo from wbd_huc12
-    WHERE swat_use
+    WHERE swat_use ORDER by huc12
     """, pgconn, params=(PROJSTR,), index_col='huc12', geom_col='geo')
+    hucs = huc12df.index.values
     tasmax_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_tasmax.nc")
     tasmin_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_tasmin.nc")
     pr_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_pr.nc")
 
     # compute the affine
-    ncaffine = Affine(pr_nc.getncattr('grid_size_in_meters'), 0.,
+    ncaffine = Affine(pr_nc.getncattr('grid_size_in_meters'),
+                      0.,
                       pr_nc.variables['jx'][0],
                       0.,
                       0 - pr_nc.getncattr('grid_size_in_meters'),
@@ -83,21 +93,38 @@ def main(argv):
 
     basedate, timesz = get_basedate(pr_nc)
     fps = []
-    for i in range(timesz):
+    gridnav = []
+    for i in tqdm(range(timesz)):
         date = basedate + datetime.timedelta(days=i)
-        print(date)
 
         def process(grid):
+            """One time processing of zonal_stats"""
             # nodata here represents the value that is set to missing within
             # the source dataset!, setting to zero has strange side affects
             return zonal_stats(huc12df['geo'], np.flipud(grid),
-                               affine=ncaffine, nodata=-1, all_touched=True)
+                               affine=ncaffine, nodata=-1, all_touched=True,
+                               raster_out=True)
 
-        zs_tasmax = process(tasmax_nc.variables['tas'][i, 0, :, :])
-        zs_tasmin = process(tasmin_nc.variables['tas'][i, 0, :, :])
-        zs_pr = process(pr_nc.variables['pr'][i, :, :])
-        j = 0
-        for huc12, _ in huc12df.itertuples():
+        if i == 0:
+            zs = process(tasmax_nc.variables['tas'][i, 0, :, :])
+            # Save what grid navigation was discovered
+            for entry in zs:
+                aff = entry['mini_raster_affine']
+                x0 = int((aff.c - ncaffine.c) / ncaffine.a)
+                y0 = int(abs((ncaffine.f - aff.f) / ncaffine.e))
+                (ysz, xsz) = entry['mini_raster_array'].mask.shape
+                gridnav.append(GRIDINFO(x0=x0,
+                                        y0=y0,
+                                        xsz=xsz,
+                                        ysz=ysz,
+                                        mask=entry['mini_raster_array'].mask))
+        # keep array logic in top-down order
+        tasmax = np.flipud(temperature(tasmax_nc.variables['tas'][i, 0, :, :],
+                                       'K').value('C'))
+        tasmin = np.flipud(temperature(tasmin_nc.variables['tas'][i, 0, :, :],
+                                       'K').value('C'))
+        pr = np.flipud(pr_nc.variables['pr'][i, :, :])
+        for j, huc12 in enumerate(hucs):
             if i == 0:
                 fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'wb'),
                             open('swatfiles/%s.tmp' % (huc12, ), 'wb')])
@@ -111,24 +138,28 @@ def main(argv):
 
 
 """ % (huc12, ))
+
+            def do_work(grid, idx):
+                """Do the computations needed"""
+                mynav = gridnav[idx]
+                return np.ma.mean(np.ma.array(
+                    grid[mynav.y0:(mynav.y0 + mynav.ysz),
+                         mynav.x0:(mynav.x0 + mynav.xsz)],
+                    mask=mynav.mask))
+
+            mytasmax = do_work(tasmax, j)
+            mytasmin = do_work(tasmin, j)
+            mypr = do_work(pr, j)
             fps[j][0].write(("%s%03i%5.1f\n"
                              ) % (date.year, float(date.strftime("%j")),
-                                  zs_pr[i]['mean'] * 86400.))
+                                  mypr * 86400.))
             fps[j][1].write(("%s%03i%5.1f%5.1f\n"
                              ) % (date.year, float(date.strftime("%j")),
-                                  temperature(zs_tasmax[i]['mean'],
-                                              'K').value("C"),
-                                  temperature(zs_tasmin[i]['mean'],
-                                              'K').value("C")))
-            # print("%s %s %.2f %.2f %.2f" % (date, huc12,
-            #                                zs_tasmax[j]['mean'],
-            #                                zs_tasmin[j]['mean'],
-            #                                zs_pr[j]['mean'] * 86400.))
-            j += 1
+                                  mytasmax, mytasmin))
 
-    for i in range(len(fps)):
-        fps[i][0].close()
-        fps[i][1].close()
+    for fp in fps:
+        fp[0].close()
+        fp[1].close()
 
 
 if __name__ == '__main__':
