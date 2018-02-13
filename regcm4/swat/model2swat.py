@@ -52,7 +52,7 @@ import netCDF4
 import numpy as np
 from affine import Affine
 import geopandas as gpd
-from rasterstats import zonal_stats
+from pyiem.grid.zs import CachingZonalStats
 from pyiem.util import get_dbconn
 from pyiem.datatypes import temperature
 
@@ -90,40 +90,21 @@ def main(argv):
                       0.,
                       0 - pr_nc.getncattr('grid_size_in_meters'),
                       pr_nc.variables['iy'][-1])
-
+    czs = CachingZonalStats(ncaffine)
     basedate, timesz = get_basedate(pr_nc)
     fps = []
-    gridnav = []
     for i in tqdm(range(timesz)):
         date = basedate + datetime.timedelta(days=i)
 
-        def process(grid):
-            """One time processing of zonal_stats"""
-            # nodata here represents the value that is set to missing within
-            # the source dataset!, setting to zero has strange side affects
-            return zonal_stats(huc12df['geo'], np.flipud(grid),
-                               affine=ncaffine, nodata=-1, all_touched=True,
-                               raster_out=True)
-
-        if i == 0:
-            zs = process(tasmax_nc.variables['tas'][i, 0, :, :])
-            # Save what grid navigation was discovered
-            for entry in zs:
-                aff = entry['mini_raster_affine']
-                x0 = int((aff.c - ncaffine.c) / ncaffine.a)
-                y0 = int(abs((ncaffine.f - aff.f) / ncaffine.e))
-                (ysz, xsz) = entry['mini_raster_array'].mask.shape
-                gridnav.append(GRIDINFO(x0=x0,
-                                        y0=y0,
-                                        xsz=xsz,
-                                        ysz=ysz,
-                                        mask=entry['mini_raster_array'].mask))
         # keep array logic in top-down order
         tasmax = np.flipud(temperature(tasmax_nc.variables['tas'][i, 0, :, :],
                                        'K').value('C'))
         tasmin = np.flipud(temperature(tasmin_nc.variables['tas'][i, 0, :, :],
                                        'K').value('C'))
         pr = np.flipud(pr_nc.variables['pr'][i, :, :])
+        mytasmax = czs.gen_stats(tasmax, huc12df['geo'])
+        mytasmin = czs.gen_stats(tasmin, huc12df['geo'])
+        mypr = czs.gen_stats(pr, huc12df['geo'])
         for j, huc12 in enumerate(hucs):
             if i == 0:
                 fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'wb'),
@@ -139,23 +120,12 @@ def main(argv):
 
 """ % (huc12, ))
 
-            def do_work(grid, idx):
-                """Do the computations needed"""
-                mynav = gridnav[idx]
-                return np.ma.mean(np.ma.array(
-                    grid[mynav.y0:(mynav.y0 + mynav.ysz),
-                         mynav.x0:(mynav.x0 + mynav.xsz)],
-                    mask=mynav.mask))
-
-            mytasmax = do_work(tasmax, j)
-            mytasmin = do_work(tasmin, j)
-            mypr = do_work(pr, j)
             fps[j][0].write(("%s%03i%5.1f\n"
                              ) % (date.year, float(date.strftime("%j")),
-                                  mypr * 86400.))
+                                  mypr[j] * 86400.))
             fps[j][1].write(("%s%03i%5.1f%5.1f\n"
                              ) % (date.year, float(date.strftime("%j")),
-                                  mytasmax, mytasmin))
+                                  mytasmax[j], mytasmin[j]))
 
     for fp in fps:
         fp[0].close()
