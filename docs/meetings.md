@@ -1,5 +1,10 @@
-13 Feb 2018 - ISU Team Update
+ 6 Mar 2018 - ISU Team Update
   Glisan, Gutowski, Arritt, Karuthe, Spender
+  - ERAI is done, so I should prioritize it
+  - [ ] I volunteered to look more into MERRA precip
+
+13 Feb 2018 - ISU Team Update
+  Glisan, Gutowski, Arritt, Karuthe, Spender, Gasman
   - Perhaps some of Alex and/or Jacob work can be merged into a senior thesis
   - Jacob is working on extreme winter precipitation stuff
   - Justin and Seth are working on metrics
