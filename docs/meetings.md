@@ -1,3 +1,12 @@
+ 2 Apr 2018 - Arritt Gassman Sirini
+  - SWAT has some online tooling/data available for LOCA downscaled already,
+    but this data is only for HUC10 and HUC8, they did not want to go down to
+    HUC12
+  - [x] various improvements for what was previously generated for SWAT files
+    including prefix files with P and T, two seperate folders and generate the
+    index file
+  - Sirini is going to give a HAWQS talk on 23 April at 11 AM
+
  6 Mar 2018 - ISU Team Update
   Glisan, Gutowski, Arritt, Karuthe, Spender
   - ERAI is done, so I should prioritize it
