@@ -7,14 +7,16 @@ tasmax -> max of hourly tas
 ncra -O --mro -d time,6,,24,24 -v tas -y max regcm4_erai_12km_tas.????.nc /tmp/tasmax.nc
 
 tasmin -> min of hourly tas
-pcpn -> sum hourly pr
+pcpn -> avg hourly pr
 srad -> sum hourly rsds
 
 """
 import sys
 
+
 def main(argv):
     """Go Main Go"""
+    print(argv)
 
 
 if __name__ == '__main__':
