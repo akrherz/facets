@@ -48,18 +48,24 @@ import datetime
 from collections import namedtuple
 
 from tqdm import tqdm
-import netCDF4
 import numpy as np
 from affine import Affine
 import geopandas as gpd
 from pyiem.grid.zs import CachingZonalStats
-from pyiem.util import get_dbconn
+from pyiem.util import get_dbconn, ncopen
 from pyiem.datatypes import temperature
 
 GRIDINFO = namedtuple("GridInfo", ['x0', 'y0', 'xsz', 'ysz', 'mask'])
-PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
+# 25km
+PROJSTR = ('+proj=omerc +lat_0=46.5 +alpha=90.0 +lonc=263.0 +x_0=0. '
            '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
-BASEDIR = "/mnt/nrel/akrherz/cori/regcm4_erai_12km/daily6z"
+# 12km
+# PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
+#          '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
+BASEDIR = "/mnt/nrel/akrherz/cori/lake_25_001_skt/daily6z"
+
+STS = datetime.date(1984, 1, 1)
+ETS = datetime.date(2016, 1, 1)
 
 
 def get_basedate(ncfile):
@@ -76,12 +82,12 @@ def main(argv):
     pgconn = get_dbconn('idep')
     huc12df = gpd.GeoDataFrame.from_postgis("""
     SELECT huc12, ST_Transform(simple_geom, %s) as geo from wbd_huc12
-    WHERE swat_use ORDER by huc12
+    WHERE swat_use ORDER by huc12 LIMIT 1
     """, pgconn, params=(PROJSTR,), index_col='huc12', geom_col='geo')
     hucs = huc12df.index.values
-    tasmax_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_tasmax.nc")
-    tasmin_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_tasmin.nc")
-    pr_nc = netCDF4.Dataset(BASEDIR + "/regcm4_erai_12km_pr.nc")
+    tasmax_nc = ncopen(BASEDIR + "/lake_25_001_skt_tasmax.nc")
+    tasmin_nc = ncopen(BASEDIR + "/lake_25_001_skt_tasmin.nc")
+    pr_nc = ncopen(BASEDIR + "/lake_25_001_skt_pr.nc")
 
     # compute the affine
     ncaffine = Affine(pr_nc.getncattr('grid_size_in_meters'),
@@ -95,6 +101,8 @@ def main(argv):
     fps = []
     for i in tqdm(range(timesz)):
         date = basedate + datetime.timedelta(days=i)
+        if date < STS or date >= ETS:
+            continue
 
         # keep array logic in top-down order
         tasmax = np.flipud(temperature(tasmax_nc.variables['tas'][i, 0, :, :],
@@ -106,26 +114,14 @@ def main(argv):
         mytasmin = czs.gen_stats(tasmin, huc12df['geo'])
         mypr = czs.gen_stats(pr, huc12df['geo'])
         for j, huc12 in enumerate(hucs):
-            if i == 0:
-                fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'wb'),
-                            open('swatfiles/%s.tmp' % (huc12, ), 'wb')])
-                fps[j][0].write("""HUC12 %s
+            if not fps:
+                fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'w'),
+                            open('swatfiles/%s.tmp' % (huc12, ), 'w')])
+                fps[j][0].write("%s\n" % (STS.strftime("%Y%m%d"), ))
+                fps[j][1].write("%s\n" % (STS.strftime("%Y%m%d"), ))
 
-
-
-""" % (huc12, ))
-                fps[j][1].write("""HUC12 %s
-
-
-
-""" % (huc12, ))
-
-            fps[j][0].write(("%s%03i%5.1f\n"
-                             ) % (date.year, float(date.strftime("%j")),
-                                  mypr[j] * 86400.))
-            fps[j][1].write(("%s%03i%5.1f%5.1f\n"
-                             ) % (date.year, float(date.strftime("%j")),
-                                  mytasmax[j], mytasmin[j]))
+            fps[j][0].write("%.1f\n" % (mypr[j] * 86400.,))
+            fps[j][1].write("%.2f,%.2f\n" % (mytasmax[j], mytasmin[j]))
 
     for fp in fps:
         fp[0].close()

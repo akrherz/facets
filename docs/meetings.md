@@ -1,14 +1,14 @@
 14 May 2018 - Arritt Gassman Adrianna Alex
   - For the June meeting, we want to show the results of the dynamic downscale
-  - [ ] Dr Arritt needs me to generate the 0z-0z precip files for erainterim
+  - [x] Dr Arritt needs me to generate the 0z-0z precip files for erainterim
   - [x] email Dr Arritt about needing more hadgem rcp85 data on cori
   - [ ] LOCA dump needs to be between 1989 thru 2010, not 1979 thru 2000
     priorioty: hadgem2-es, gfdl-esm2m, mpi_lr
   - the RCP pathway is more in terms of radiative forcing than CO2
-  - [ ] For the dynamically downscaled, just dump tmax, tmin, and pr not all
+  - [x] For the dynamically downscaled, just dump tmax, tmin, and pr not all
     the other vars, instead of splitting at 2005, just use 1984 thru 2005
   - Todd will likely run these, not Yiannis
-  - [ ] Dr Arritt wants me to dump the 25km run, not 12km, hmmm
+  - [x] Dr Arritt wants me to dump the 25km run, not 12km, hmmm
   - [ ] maybe I should send a dump of PRISM data
   - [ ] Do European precip sensors also have 0.01 tipping mechanisms?
   - [ ] shifts in extreme 25mm/day precip
