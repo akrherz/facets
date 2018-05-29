@@ -114,7 +114,7 @@ def main(argv):
         mytasmin = czs.gen_stats(tasmin, huc12df['geo'])
         mypr = czs.gen_stats(pr, huc12df['geo'])
         for j, huc12 in enumerate(hucs):
-            if not fps:
+            if date == STS:
                 fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'w'),
                             open('swatfiles/%s.tmp' % (huc12, ), 'w')])
                 fps[j][0].write("%s\n" % (STS.strftime("%Y%m%d"), ))
