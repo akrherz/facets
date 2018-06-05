@@ -64,8 +64,8 @@ PROJSTR = ('+proj=omerc +lat_0=46.5 +alpha=90.0 +lonc=263.0 +x_0=0. '
 #          '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
 BASEDIR = "/mnt/nrel/akrherz/cori/lake_25_001_skt/daily6z"
 
-STS = datetime.date(1984, 1, 1)
-ETS = datetime.date(2016, 1, 1)
+STS = datetime.date(1989, 1, 1)
+ETS = datetime.date(2011, 1, 1)
 
 
 def get_basedate(ncfile):
