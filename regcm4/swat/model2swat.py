@@ -44,6 +44,7 @@ rm regcm4_erai_12km_uas.1989.nc
 """
 from __future__ import print_function
 import sys
+import os
 import datetime
 from collections import namedtuple
 
@@ -79,6 +80,14 @@ def get_basedate(ncfile):
 
 def main(argv):
     """Go Main Go"""
+    outdir = "swatfiles"
+    if os.path.isdir(outdir):
+        print("ABORT: as %s exists" % (outdir, ))
+        return
+    os.mkdir(outdir)
+    for dirname in ['precipitation', 'temperature']:
+        os.mkdir("%s/%s" % (outdir, dirname))
+
     pgconn = get_dbconn('idep')
     huc12df = gpd.GeoDataFrame.from_postgis("""
     SELECT huc12, ST_Transform(simple_geom, %s) as geo from wbd_huc12
@@ -115,8 +124,10 @@ def main(argv):
         mypr = czs.gen_stats(pr, huc12df['geo'])
         for j, huc12 in enumerate(hucs):
             if date == STS:
-                fps.append([open('swatfiles/%s.pcp' % (huc12, ), 'w'),
-                            open('swatfiles/%s.tmp' % (huc12, ), 'w')])
+                fps.append([open(('%s/precipitation/P%s.txt'
+                                  ) % (outdir, huc12), 'w'),
+                            open(('%s/temperature/T%s.txt'
+                                  ) % (outdir, huc12), 'w')])
                 fps[j][0].write("%s\n" % (STS.strftime("%Y%m%d"), ))
                 fps[j][1].write("%s\n" % (STS.strftime("%Y%m%d"), ))
 
