@@ -41,6 +41,8 @@ rm regcm4_erai_12km_uas.1989.nc
 /opt/miniconda2/bin/ncap2 -6 -O -s 'sped=sqrt(pow(uas,2)+pow(vas,2))'
     regcm4_erai_12km_uas_vas.1989.nc regcm4_erai_12km_sped.1989.nc
 
+For HADGEM we have a 360 day calendar, see http://loca.ucsd.edu/loca-calendar/
+They pick 1 random day every 72 days to do linear interpolation.
 """
 from __future__ import print_function
 import sys
