@@ -1,3 +1,20 @@
+ 3 Aug 2018 - Arritt Gutowski Gassman Spender Alex
+  - Reminder that the regcm4 runs for 25 and 50 km went 1950 thru 2099
+  - Discussion of logistics for Sirvini visit the second week of Sept
+  - [x] start more systematic look at precipitation from LOCA SWAT files
+
+20 Jul 2018 - Arritt Gutowski Gassman Spender Alex(remote)
+  - Gonna look at Stage IV 2002-2012 DJF (6hourly)
+  - Use NARR for an analysis of circulation
+  - Note that the regcm4 spacing is not exactly 50,25,12, but 0.44, 0.22, 0.11
+  - MPI run being made on Cheyenne at NCAR, done by end of Sept
+  - What are the basic and more advanced evaluation metrics for SWAT
+  - HAWQS workshop here on 12-13 Sept, atttempt to meet with Dr Sirvini
+  - Dr Arritt has access to the precipitation data from WRF
+  - [ ] Paul Deermeyer(sp) has some one-pager showing 25 metrics for LSM
+  - AGU abstracts are due 1 August
+  - meet in two weeks, 1 PM Aug 3
+
 14 May 2018 - Arritt Gassman Adrianna Alex
   - For the June meeting, we want to show the results of the dynamic downscale
   - [x] Dr Arritt needs me to generate the 0z-0z precip files for erainterim
