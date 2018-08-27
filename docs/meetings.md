@@ -1,3 +1,17 @@
+24 Aug 2018 - Arritt Gutowski Gassman Spender Alex
+  - [x] Gassman denoted an excel output issue for me from climodat stations
+  - Key project point is to show we compared downscaling approaches
+  - MPI regcm4 runs all done at NCAR
+  - The MPAS runs took three iterations with HADGEM, same stability issues as
+    we saw with regcm4
+  - For MPAS, gonna focus on a 25km MPI run
+  - Statistical downscaling will be available for 10 stations, maybe more
+  - Need to itemize for presentations which simple metrics are completed
+  - [ ] email Seth about providing our 12km runs
+  - Discussion on the upcoming HAWQS workshop
+  - Discussion on the upcoming DOE PIs meeting
+  - Will meet at 1 PM on 31 Aug next
+
  3 Aug 2018 - Arritt Gutowski Gassman Spender Alex
   - Reminder that the regcm4 runs for 25 and 50 km went 1950 thru 2099
   - Discussion of logistics for Sirvini visit the second week of Sept
