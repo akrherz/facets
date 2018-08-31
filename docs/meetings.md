@@ -1,3 +1,7 @@
+31 Aug 2018 - Arritt Gutowski Spender Alex
+  - Arritt and Gutowski are currently planning on attending the PIs meeting
+  - Need to organize the project PIs monthly conference call again
+
 24 Aug 2018 - Arritt Gutowski Gassman Spender Alex
   - [x] Gassman denoted an excel output issue for me from climodat stations
   - Key project point is to show we compared downscaling approaches
@@ -7,7 +11,7 @@
   - For MPAS, gonna focus on a 25km MPI run
   - Statistical downscaling will be available for 10 stations, maybe more
   - Need to itemize for presentations which simple metrics are completed
-  - [ ] email Seth about providing our 12km runs
+  - [x] email Seth about providing our 12km runs
   - Discussion on the upcoming HAWQS workshop
   - Discussion on the upcoming DOE PIs meeting
   - Will meet at 1 PM on 31 Aug next
