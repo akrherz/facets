@@ -1,3 +1,19 @@
+14 Sep 2018 - Arritt Gutowski Manu Alex Spender
+  - [x] update NCL on arnold to the latest release
+
+13 Sep 2018 - HAWQS workshop
+  - [ ] create a cheatsheet for now my gridding algo works, so that others
+    could use it, potentially
+  - could do the above as an ipython notebook perhaps
+  - Discussion about how the EPA picked the CMIP5 models, turns out there are
+    variograms that allow for a picking strategy
+  - [ ] investigate http://2w2e.com 's referenced paper
+  - [ ] email details on my COOP processing to Dr Sirnivi
+  - [ ] I'll produce an extracted PRISM dataset
+  - Is there a CRU equivalent for Asia?
+  - [ ] check how tmax and tmin are provided to SWAT min,max or max,min
+  - [ ] check how the yearly replacement of data works for SWAT download COOP
+
 31 Aug 2018 - Arritt Gutowski Spender Alex
   - Arritt and Gutowski are currently planning on attending the PIs meeting
   - Need to organize the project PIs monthly conference call again
