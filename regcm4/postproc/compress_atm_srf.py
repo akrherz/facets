@@ -30,6 +30,8 @@ def main(argv):
     ncfns.extend(glob.glob("*SRF*nc*"))
     ncfns.sort()
     for ncfn in tqdm(ncfns):
+        if ncfn.find("hgt") > 0:
+            continue
         if ncfn.endswith(".gz"):
             runcmd(["gunzip", ncfn])
             ncfn = ncfn[:-3]
@@ -47,7 +49,9 @@ def main(argv):
         if complevel == 1:
             continue
         # We have compression work to do!
-        runcmd(["nccopy", "-k", "4", "-d", "1", ncfn,  ncfn + ".tmp"])
+        if os.path.isfile(ncfn + ".tmp"):
+            os.unlink(ncfn + ".tmp")
+        runcmd(["nccopy", "-k", "4", "-d", "1", ncfn, ncfn + ".tmp"])
         runcmd(["mv", ncfn + ".tmp", ncfn])
 
 
