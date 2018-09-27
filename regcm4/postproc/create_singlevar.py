@@ -65,7 +65,7 @@ def main(argv):
         # generate the sped file
         runcmd(
             ("/opt/miniconda3/envs/prod/bin/ncap2 -6 -O -s "
-             "'sped=sqrt(pow(uas,2)+pow(vas,2))' ",
+             "'sped=sqrt(pow(uas,2)+pow(vas,2))' "
              "../singlevar/%s_uas_vas.%s.nc "
              "../singlevar/%s_sped.%s.nc"
              ) % (foldername, year, foldername, year)
