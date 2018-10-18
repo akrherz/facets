@@ -1,3 +1,19 @@
+12 Oct 2018 - Arritt Manu Alex Spender Gasmann
+  - Discussion on how SWAT handles sub basins
+  - My TODO list for huc8 areal averaged values
+    - [ ] Linveh
+    - [x] PRISM
+    - [ ] Stage IV (IEMRE)
+    - [ ] Models starting with hadgem
+  - [ ] is there a SWAT Linux binary?
+
+28 Sep 2018 - Arritt Gutowski Manu Alex Spender
+  - [x] there's a model status sheet floating around I should review.
+  - The MPAS run with hadgem is a lower priority due to CFL issues regcm4
+    and wrf had with the runs
+  - discussion on best precip comparison to do between 1, 3, and 6 hourly
+  - [ ] generate the mass conserving stage IV analysis
+
 14 Sep 2018 - Arritt Gutowski Manu Alex Spender
   - [x] update NCL on arnold to the latest release
 
