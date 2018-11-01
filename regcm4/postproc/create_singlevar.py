@@ -12,6 +12,9 @@ import subprocess
 
 from tqdm import tqdm
 CONVVARS = ['uas', 'vas', 'qas', 'tas', 'pr', 'rsds', 'rsns']
+XREF = {
+    'regcm4_hadgem_rcp85': 'regcm4_hadgem_12km'
+}
 
 
 def runcmd(cmd):
@@ -49,7 +52,8 @@ def main(argv):
                 continue
             runcmd(
                 ("/opt/miniconda3/envs/prod/bin/ncrcat -4 -v %s %s_SRF.%s*.nc "
-                 "%s") % (varname, foldername, year, outfn)
+                 "%s") % (varname, XREF.get(foldername, foldername), year,
+                          outfn)
             )
         # Combine uas vas
         runcmd(
