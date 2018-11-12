@@ -1,9 +1,16 @@
+31 Oct 2018 - Arritt Manu Alex Gasmann
+  - IEMRE was found to be way too low during 1997, still bad prior to 2003
+  - CMIP5 is not necessarily based on obs for present climate runs
+  - Discussion on what tunables exist within SWAT
+  - There is a Nature publication on biases of Livneh dataset
+  - Decision was to calibrate against Livneh
+
 12 Oct 2018 - Arritt Manu Alex Spender Gasmann
   - Discussion on how SWAT handles sub basins
   - My TODO list for huc8 areal averaged values
-    - [ ] Linveh
+    - [x] Linveh
     - [x] PRISM
-    - [ ] Stage IV (IEMRE)
+    - [x] Stage IV (IEMRE)
     - [ ] Models starting with hadgem
   - [ ] is there a SWAT Linux binary?
 

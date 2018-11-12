@@ -1,6 +1,21 @@
 # facets
 My work on the FACETs project
 
+Sharing output data
+-------------------
+
+I have a copy of the CORDEX variable requirements on our website:
+https://na-cordex.org/sites/default/files/na-cordex/CORDEX_variables_requirement_table.pdf
+
+We're collecting a subset of those variables for the NA-CORDEX archive:
+https://na-cordex.org/variable-list
+
+In general, we're adhering to the CORDEX specs for the FACETS run, so
+the requirements for the grids would come from there:
+https://na-cordex.org/sites/default/files/na-cordex/cordex_archive_specifications.pdf
+
+
+
 25km grid navigation
 --------------------
 
