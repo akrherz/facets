@@ -1,3 +1,9 @@
+ 5 Dec 2018 - Manu Alex Gasmann Jacob
+  - First meeting without Dr Arritt :(
+  - Discuss the results from the Livneh runs, which look promising when using
+    Hargraeves.  They noted 73% ET for the runs in MRB.
+  - Their process is now calibration to get ready to run scenarios.
+
 31 Oct 2018 - Arritt Manu Alex Gasmann
   - IEMRE was found to be way too low during 1997, still bad prior to 2003
   - CMIP5 is not necessarily based on obs for present climate runs
