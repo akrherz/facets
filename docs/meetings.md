@@ -1,3 +1,18 @@
+31 Dec 2018 - Manu Alex Gasmann Jacob Gutowski
+  - Our continuation project is currently/informally labelled Hyper-FACETs
+  - There is a big Jan 3 presentation on the path forward, which prompted this
+  - Need to resolve what the overarching goals are
+    1) Can metrics inform uncertainty in projections?
+    2) Are there mutli-sector interactions?
+  - "storylines" are a new buzz word to describe change impacts in relatable
+  - Continued goal of software package of metrics
+  - Hyperion has targeted 4 basins and have partners in each
+  - [ ] look at what the CLM-PAWS model is
+  - Slide that discussed machine learning for reservior management
+  - [ ] which is DOE's model, MPAS or E3SM ?
+  - Timeline for continuation is mid March and then funding by early summer
+  - Getting Dr Gasmann as a PhD committee member is progressing
+
  5 Dec 2018 - Manu Alex Gasmann Jacob
   - First meeting without Dr Arritt :(
   - Discuss the results from the Livneh runs, which look promising when using
