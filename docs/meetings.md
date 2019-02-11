@@ -1,3 +1,16 @@
+ 8 Feb 2019 - Manu Alex Gasmann Jacob Gutowski
+  - Gasmann will be out 5-6 weeks starting 25 Feb for medical treatment :(
+  - Gasmann hopes to have a ABE appointment soon
+  - NARCAAP -> CORDEX -> FACETS
+  - [ ] was running regcm4 at 12.5km hydrostatic a good idea? check emails
+  - [ ] What was used for numerical diffusion for these runs?
+  - Jacob is noticing little difference in omega between the 12.5 and 25km runs
+  - need to account for reserviours in Missouri
+  - There were two hyperfacets presentations to DOE, which went OK
+  - Need to look more into the national water model and how it can be used here
+  - Interesting to note that Colorado River does not always make it to ocean
+  - also interesting that ocean waves can impart momentum on atmosphere
+
 31 Dec 2018 - Manu Alex Gasmann Jacob Gutowski
   - Our continuation project is currently/informally labelled Hyper-FACETs
   - There is a big Jan 3 presentation on the path forward, which prompted this
