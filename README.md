@@ -73,3 +73,26 @@ invproj -f "%f" +proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. +y_0=0. 
 -38.367318  51.450835
 ```
 
+50km grid WRF
+-------------
+
+```
+		:CEN_LAT = 46.f ;
+		:CEN_LON = -97.f ;
+		:TRUELAT1 = 35.f ;
+		:TRUELAT2 = 60.f ;
+		:MOAD_CEN_LAT = 46.f ;
+		:STAND_LON = -97.f ;
+		:POLE_LAT = 90.f ;
+
+xsz = 158 ysz = 150
+XLAT,XLONG lowerleft = -127.087 7.71317
+XLAT,XLONG upperright = -13.62 58.4
+
+invproj -f "%f" +proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. +a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs
+-3925000. -3725000.
+-127.087241	7.713160
+3925000. 3725000.   
+-13.629138	58.541067
+
+```
