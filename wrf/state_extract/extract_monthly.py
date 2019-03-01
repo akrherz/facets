@@ -16,20 +16,17 @@ PROJSTR = (
 
 def get_basedate(ncfile):
     """Compute the dates that we have"""
-    nctime = str(ncfile.variables['Times'][0])
-    sz = len(ncfile.variables['Times'][:])
-    return datetime.datetime(
-        int(nctime[:4]), int(nctime[4:6]), int(nctime[6:8]), 3), sz
+    return datetime.datetime(1949, 12, 1), ncfile.variables['time'][:]
 
 
 def main():
     """Go Main Go."""
     ncaffine = Affine(50000.,
                       0.,
-                      -3925000.,
+                      -3675000.,
                       0.,
                       -50000.,
-                      3725000.)
+                      3475000.)
     pgconn = get_dbconn('postgis')
     statesdf = gpd.GeoDataFrame.from_postgis("""
         (SELECT preabbr as abbr, ST_Transform(geom, %s) as geo
@@ -41,28 +38,28 @@ def main():
     abbrs = statesdf.index.values
     fps = []
     for abbr in abbrs:
-        fps.append(open("data/%s.csv" % (abbr, ), 'w'))
+        fp = open("data/%s.csv" % (abbr.replace(".", ""), ), 'w')
+        fp.write("year,month,averagetemp_c,precip_mm\n")
+        fps.append(fp)
     czs = CachingZonalStats(ncaffine)
-    for period in ['1950_2005', '2005_2059', '2060_2099', '2100']:
+    for period in ['hist', 'rcp85']:
         pr_nc = ncopen(
-            "/mnt/nrel/acaruthe/wrf/precip_wrf_mpi_%s.nc" % (period, ))
+            "pr.%s.MPI-ESM-LR.WRF.mon.NAM-44.raw.nc" % (period, ))
         t2_nc = ncopen(
-            "/mnt/nrel/acaruthe/wrf/t2_wrf_mpi_%s.nc" % (period, ))
-        basedate, timesz = get_basedate(pr_nc)
-        print("Running from %s for %s steps" % (basedate, timesz))
-        for i in range(timesz):
-            date = basedate + datetime.timedelta(hours=(i*3))
+            "tas.%s.MPI-ESM-LR.WRF.mon.NAM-44.raw.nc" % (period, ))
+        basedate, times = get_basedate(pr_nc)
+        print("Running from %s for %s steps" % (basedate, len(times)))
+        for i, time in enumerate(times):
+            date = basedate + datetime.timedelta(days=time)
 
-            t2 = np.flipud(t2_nc.variables['T2'][i, :, :])
-            prc = np.flipud(pr_nc.variables['RAINC'][i, :, :])
-            prnc = np.flipud(pr_nc.variables['RAINNC'][i, :, :])
-            myt2 = czs.gen_stats(t2, statesdf['geo'])
-            myprc = czs.gen_stats(prc, statesdf['geo'])
-            myprnc = czs.gen_stats(prnc, statesdf['geo'])
+            tas = np.flipud(t2_nc.variables['tas'][i, :, :]) - 273.15
+            # 3hr avg, this is a HACK
+            pr = np.flipud(pr_nc.variables['pr'][i, :, :]) * 10800. * 8 * 30.5
+            myt2 = czs.gen_stats(tas, statesdf['geo'])
+            myprc = czs.gen_stats(pr, statesdf['geo'])
             for ii, fp in enumerate(fps):
-                fp.write("%s,%s,%s,%s\n" % (
-                    date.strftime("%Y%m%d%H"), myt2[ii], myprc[ii],
-                    myprnc[ii]))
+                fp.write("%s,%s,%s\n" % (
+                    date.strftime("%Y,%m"), myt2[ii], myprc[ii]))
         pr_nc.close()
         t2_nc.close()
     for fp in fps:

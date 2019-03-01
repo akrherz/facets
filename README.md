@@ -89,6 +89,11 @@ xsz = 158 ysz = 150
 XLAT,XLONG lowerleft = -127.087 7.71317
 XLAT,XLONG upperright = -13.62 58.4
 
+actual cordex file
+xsz = 148 ysz = 140
+lowerleft = -126.0373 10.15
+upperright = -19.618 59.35
+
 invproj -f "%f" +proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. +a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs
 -3925000. -3725000.
 -127.087241	7.713160
