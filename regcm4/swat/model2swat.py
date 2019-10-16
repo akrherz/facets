@@ -59,13 +59,16 @@ from pyiem.util import get_dbconn, ncopen
 from pyiem.datatypes import temperature
 
 GRIDINFO = namedtuple("GridInfo", ['x0', 'y0', 'xsz', 'ysz', 'mask'])
+# 50km
+PROJSTR = ('+proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. '
+           '+a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs')
 # 25km
-PROJSTR = ('+proj=omerc +lat_0=46.5 +alpha=90.0 +lonc=263.0 +x_0=0. '
-           '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
+# PROJSTR = ('+proj=omerc +lat_0=46.5 +alpha=90.0 +lonc=263.0 +x_0=0. '
+#           '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
 # 12km
 # PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
 #          '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
-BASEDIR = "/mnt/nrel/akrherz/cori/lake_25_001_skt/daily6z"
+BASEDIR = "/mnt/nrel/akrherz/cori/lake_001_skt/daily6z"
 
 STS = datetime.date(1989, 1, 1)
 ETS = datetime.date(2011, 1, 1)
@@ -92,13 +95,13 @@ def main(argv):
 
     pgconn = get_dbconn('idep')
     huc12df = gpd.GeoDataFrame.from_postgis("""
-    SELECT huc12, ST_Transform(simple_geom, %s) as geo from wbd_huc12
-    WHERE swat_use ORDER by huc12
-    """, pgconn, params=(PROJSTR,), index_col='huc12', geom_col='geo')
+    SELECT huc8, ST_Transform(simple_geom, %s) as geo from wbd_huc8
+    WHERE swat_use ORDER by huc8
+    """, pgconn, params=(PROJSTR,), index_col='huc8', geom_col='geo')
     hucs = huc12df.index.values
-    tasmax_nc = ncopen(BASEDIR + "/lake_25_001_skt_tasmax.nc")
-    tasmin_nc = ncopen(BASEDIR + "/lake_25_001_skt_tasmin.nc")
-    pr_nc = ncopen(BASEDIR + "/lake_25_001_skt_pr.nc")
+    tasmax_nc = ncopen(BASEDIR + "/lake_001_skt_tasmax.nc")
+    tasmin_nc = ncopen(BASEDIR + "/lake_001_skt_tasmin.nc")
+    pr_nc = ncopen(BASEDIR + "/lake_001_skt_pr.nc")
 
     # compute the affine
     ncaffine = Affine(pr_nc.getncattr('grid_size_in_meters'),
