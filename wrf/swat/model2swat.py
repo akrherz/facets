@@ -14,12 +14,12 @@ from metpy.units import masked_array, units
 
 GRIDINFO = namedtuple("GridInfo", ['x0', 'y0', 'xsz', 'ysz', 'mask'])
 # 50km, 25km
-PROJSTR = ('+proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. '
-           '+a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs')
+# PROJSTR = ('+proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. '
+#           '+a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs')
 # 12km
-# PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
-#          '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m '
-#          '+no_defs')
+PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
+           '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m '
+           '+no_defs')
 BASEDIR = "/tera12/acaruthe/wrf"
 
 STS = datetime.date(1989, 1, 1)
@@ -51,19 +51,19 @@ def main():
         WHERE swat_use ORDER by huc8
     """, pgconn, params=(PROJSTR,), index_col='huc8', geom_col='geo')
     hucs = huc12df.index.values
-    tasmax_nc = ncopen(BASEDIR + "/tasmax.eval.ERA-Int.WRF.day.NAM-22.raw.nc")
-    tasmin_nc = ncopen(BASEDIR + "/tasmin.eval.ERA-Int.WRF.day.NAM-22.raw.nc")
-    pr_nc = ncopen(BASEDIR + "/pr.eval.ERA-Int.WRF.day.NAM-22.raw.nc")
+    tasmax_nc = ncopen(BASEDIR + "/tasmax.eval.ERA-Int.WRF.day.FACETS-11.raw.nc")
+    tasmin_nc = ncopen(BASEDIR + "/tasmin.eval.ERA-Int.WRF.day.FACETS-11.raw.nc")
+    pr_nc = ncopen(BASEDIR + "/pr.eval.ERA-Int.WRF.day.FACETS-11.raw.nc")
 
     # compute the affine
     # NB: x, y values are wrong in the file.
     print("WARNING: we are manually hacking the affine here.")
-    ncaffine = Affine(25000.,
+    ncaffine = Affine(12000.,
                       0.,
-                      pr_nc.variables['x'][0] - 140. * 25000.,
+                      pr_nc.variables['x'][0] - 280. * 12000.,
                       0.,
-                      -25000.,
-                      pr_nc.variables['y'][-1] - 148. * 25000.)
+                      -12000.,
+                      pr_nc.variables['y'][-1] - 192. * 12000.)
     czs = CachingZonalStats(ncaffine)
     basedate, timesz = get_basedate(pr_nc)
     fps = []
@@ -75,11 +75,11 @@ def main():
         # keep array logic in top-down order
         tasmax = np.flipud(
             masked_array(
-                tasmax_nc.variables['tasmax'][i, :, :] * units.degK
+                tasmax_nc.variables['tasmax'][i, :, :], units.degK
                 ).to(units.degC).m)
         tasmin = np.flipud(
             masked_array(
-                tasmin_nc.variables['tasmin'][i, :, :] * units.degK
+                tasmin_nc.variables['tasmin'][i, :, :], units.degK
                 ).to(units.degC).m)
         pr = np.flipud(pr_nc.variables['pr'][i, :, :])
         mytasmax = czs.gen_stats(tasmax, huc12df['geo'])
