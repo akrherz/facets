@@ -44,10 +44,10 @@ rm regcm4_erai_12km_uas.1989.nc
 For HADGEM we have a 360 day calendar, see http://loca.ucsd.edu/loca-calendar/
 They pick 1 random day every 72 days to do linear interpolation.
 """
-from __future__ import print_function
 import sys
 import os
 import datetime
+import logging
 from collections import namedtuple
 
 from tqdm import tqdm
@@ -55,39 +55,67 @@ import numpy as np
 from affine import Affine
 import geopandas as gpd
 from pyiem.grid.zs import CachingZonalStats
-from pyiem.util import get_dbconn, ncopen
+from pyiem.util import get_dbconn, ncopen, logger
 from pyiem.datatypes import temperature
-
+LOG = logger()
+LOG.setLevel(logging.INFO)
 GRIDINFO = namedtuple("GridInfo", ['x0', 'y0', 'xsz', 'ysz', 'mask'])
 # 50km
-PROJSTR = ('+proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. '
-           '+a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs')
+#PROJSTR = ('+proj=lcc +lat_1=35 +lat_2=60 +lat_0=46 +lon_0=-97. '
+#           '+a=6370000 +b=6370000 +towgs84=0,0,0 +units=m +no_defs')
 # 25km
-# PROJSTR = ('+proj=omerc +lat_0=46.5 +alpha=90.0 +lonc=263.0 +x_0=0. '
-#           '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
+PROJSTR = ('+proj=omerc +lat_0=46.5 +alpha=90.0 +lonc=263.0 +x_0=0. '
+           '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
 # 12km
 # PROJSTR = ('+proj=omerc +lat_0=37.5 +alpha=90.0 +lonc=264.0 +x_0=0. '
 #          '+y_0=0. +ellps=sphere +a=6371229.0 +b=6371229.0 +units=m +no_defs')
-BASEDIR = "/mnt/nrel/akrherz/cori/lake_001_skt/daily6z"
-
-STS = datetime.date(1989, 1, 1)
-ETS = datetime.date(2011, 1, 1)
+BASEDIR = "/mnt/nrel/acaruthe/forSWAT/"
 
 
-def get_basedate(ncfile):
+
+def get_dates(ncfile):
     """Compute the dates that we have"""
     nctime = ncfile.variables['time']
     basets = datetime.datetime.strptime(nctime.units,
-                                        "hours since %Y-%m-%d 00:00:00 UTC")
-    ts = basets + datetime.timedelta(hours=float(nctime[0]))
-    return datetime.date(ts.year, ts.month, ts.day), len(nctime[:])
+                                        "days since %Y-%m-%d 00:00:00")
+    if nctime.calendar == "gregorian":
+        res = []
+        for tm in nctime[:]:
+            dt = (basets + datetime.timedelta(days=float(tm))).date()
+            res.append(dt)
+        LOG.info("Data(len=%s) stretches from %s to %s", len(res), res[0], res[-1])
+        return res, False
+
+    # We make assumptions
+    assert basets.strftime("%m%d") == "1201"
+    # ff to 1 Jan
+    basets = (basets + datetime.timedelta(days=33)).replace(day=1)
+    times = nctime[:] - 31
+    dates = []
+    for tm in times:
+        # Compute over non leap year
+        years = int(tm / 365)
+        dt2 = datetime.date(2001, 1, 1) + datetime.timedelta(days=(tm % 365))
+        dates.append(datetime.date(basets.year + years, dt2.month, dt2.day))
+    LOG.info("Data(len=%s) stretches from %s to %s", len(dates), dates[0], dates[-1])
+    return dates, True
 
 
 def main(argv):
     """Go Main Go"""
-    outdir = "swatfiles"
+    typ = argv[1]
+    if typ == "hist":
+        STS = datetime.date(1950, 1, 1)
+        ETS = datetime.date(2006, 1, 1)
+    else:
+        STS = datetime.date(2006, 1, 1)
+        ETS = datetime.date(2100, 1, 1)
+    model = argv[2]
+    bc = argv[3]
+    outdir = f"swatfiles_{typ}_{model}_{bc}"
+    LOG.info("running for %s", outdir)
     if os.path.isdir(outdir):
-        print("ABORT: as %s exists" % (outdir, ))
+        LOG.info("returning as %s exists" % (outdir, ))
         return
     os.mkdir(outdir)
     for dirname in ['precipitation', 'temperature']:
@@ -95,35 +123,32 @@ def main(argv):
 
     pgconn = get_dbconn('idep')
     huc12df = gpd.GeoDataFrame.from_postgis("""
-    SELECT huc8, ST_Transform(simple_geom, %s) as geo from wbd_huc8
+    SELECT huc8, simple_geom as geo from wbd_huc8
     WHERE swat_use ORDER by huc8
-    """, pgconn, params=(PROJSTR,), index_col='huc8', geom_col='geo')
+    """, pgconn, index_col='huc8', geom_col='geo')
     hucs = huc12df.index.values
-    tasmax_nc = ncopen(BASEDIR + "/lake_001_skt_tasmax.nc")
-    tasmin_nc = ncopen(BASEDIR + "/lake_001_skt_tasmin.nc")
-    pr_nc = ncopen(BASEDIR + "/lake_001_skt_pr.nc")
+    tasmax_nc = ncopen(f"{BASEDIR}/tmax.{typ}.{model}.day.NAM-22i.{bc}.nc")
+    tasmin_nc = ncopen(f"{BASEDIR}/tmin.{typ}.{model}.day.NAM-22i.{bc}.nc")
+    pr_nc = ncopen(f"{BASEDIR}/prec.{typ}.{model}.day.NAM-22i.{bc}.nc")
 
     # compute the affine
-    ncaffine = Affine(pr_nc.getncattr('grid_size_in_meters'),
+    ncaffine = Affine(0.25,
                       0.,
-                      pr_nc.variables['jx'][0],
+                      -171.875,
                       0.,
-                      0 - pr_nc.getncattr('grid_size_in_meters'),
-                      pr_nc.variables['iy'][-1])
+                      -0.25,
+                      76.375)
     czs = CachingZonalStats(ncaffine)
-    basedate, timesz = get_basedate(pr_nc)
     fps = []
-    for i in tqdm(range(timesz)):
-        date = basedate + datetime.timedelta(days=i)
+    dates, add_leap_day = get_dates(tasmax_nc)
+    for i, date in tqdm(enumerate(dates), total=len(dates)):
         if date < STS or date >= ETS:
             continue
 
         # keep array logic in top-down order
-        tasmax = np.flipud(temperature(tasmax_nc.variables['tas'][i, 0, :, :],
-                                       'K').value('C'))
-        tasmin = np.flipud(temperature(tasmin_nc.variables['tas'][i, 0, :, :],
-                                       'K').value('C'))
-        pr = np.flipud(pr_nc.variables['pr'][i, :, :])
+        tasmax = np.flipud(tasmax_nc.variables['tmax'][i, :, :])
+        tasmin = np.flipud(tasmin_nc.variables['tmin'][i, :, :])
+        pr = np.flipud(pr_nc.variables['prec'][i, :, :])
         mytasmax = czs.gen_stats(tasmax, huc12df['geo'])
         mytasmin = czs.gen_stats(tasmin, huc12df['geo'])
         mypr = czs.gen_stats(pr, huc12df['geo'])
@@ -136,8 +161,12 @@ def main(argv):
                 fps[j][0].write("%s\n" % (STS.strftime("%Y%m%d"), ))
                 fps[j][1].write("%s\n" % (STS.strftime("%Y%m%d"), ))
 
-            fps[j][0].write("%.1f\n" % (mypr[j] * 86400.,))
+            fps[j][0].write("%.1f\n" % (mypr[j],))
             fps[j][1].write("%.2f,%.2f\n" % (mytasmax[j], mytasmin[j]))
+            if add_leap_day and date.month == 2 and date.day == 28 and date.year % 4 == 0:
+                # leap
+                fps[j][0].write("%.1f\n" % (mypr[j],))
+                fps[j][1].write("%.2f,%.2f\n" % (mytasmax[j], mytasmin[j]))
 
     for fp in fps:
         fp[0].close()
@@ -145,4 +174,7 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    for a in ["hist",  "rcp85"]:
+        for b in ["GFDL-ESM2M.RegCM4", "GFDL-ESM2M.WRF", "MPI-ESM-LR.RegCM4", "MPI-ESM-LR.WRF"]:
+            for c in ["mbcn-gridMET", "raw"]:
+                main([None, a, b, c])
